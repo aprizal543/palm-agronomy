@@ -23,6 +23,7 @@ def main() -> None:
         "0003_blocks_spatial.py",
         "0004_telegram_agent.py",
         "0005_production_records.py",
+        "0006_rag_knowledge.py",
     ]
 
     spatial = (ROOT / "migrations/versions/0003_blocks_spatial.py").read_text(encoding="utf-8")
@@ -61,7 +62,7 @@ def main() -> None:
                 f"Secret ditemukan: {path}"
             )
 
-    print(f"Source verification passed: {len(python_files)} Python files, 5 migrations.")
+    print(f"Source verification passed: {len(python_files)} Python files, 6 migrations.")
 
 
 if __name__ == "__main__":
