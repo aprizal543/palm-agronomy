@@ -15,3 +15,4 @@ def test_expected_routes_are_registered() -> None:
     assert "/api/v1/blocks/by-location" in paths
     assert "/api/v1/blocks/{block_id}/validation" in paths
     assert "/api/v1/telegram/webhook" in paths
+    assert "/api/v1/knowledge/search" in paths

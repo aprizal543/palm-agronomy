@@ -51,6 +51,38 @@ def test_callback_payload_fits_telegram_limit() -> None:
     assert len(callback_data.encode("utf-8")) <= 64
 
 
+def test_agronomy_question_intent_is_detected() -> None:
+    update = TelegramUpdate.model_validate(
+        {
+            "update_id": 103,
+            "message": {
+                "message_id": 10,
+                "chat": {"id": 55, "type": "private"},
+                "from": {"id": 55, "first_name": "Petani"},
+                "text": "/tanya kapan pemupukan sawit?",
+            },
+        }
+    )
+
+    assert TelegramAgentService._detect_intent(update) == "agronomy_question"
+
+
+def test_production_question_intent_is_detected() -> None:
+    update = TelegramUpdate.model_validate(
+        {
+            "update_id": 104,
+            "message": {
+                "message_id": 11,
+                "chat": {"id": 55, "type": "private"},
+                "from": {"id": 55, "first_name": "Petani"},
+                "text": "/tanya bagaimana kondisi produksi blok saya?",
+            },
+        }
+    )
+
+    assert TelegramAgentService._detect_intent(update) == "production_question"
+
+
 def test_safe_error_label_does_not_include_exception_message() -> None:
     error = RuntimeError("postgresql://user:secret@example.invalid/database")
 

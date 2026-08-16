@@ -1,0 +1,17 @@
+{
+  "_instructions": "TEMPLATE SAJA. Jangan ingest langsung. Ganti metadata, URL, lisensi, dan content dengan dokumen yang benar-benar Anda miliki atau berizin untuk diproses.",
+  "source": {
+    "title": "Pedoman Teknis Perkebunan",
+    "publisher": "Direktorat Jenderal Perkebunan, Kementerian Pertanian",
+    "source_type": "guideline",
+    "source_url": "https://ditjenbun.pertanian.go.id/pedoman-kerja/pedoman-teknis-perkebunan/",
+    "publication_year": null,
+    "language": "id",
+    "version_label": null,
+    "license_label": null,
+    "origin_type": "public_document",
+    "verification_status": "pending",
+    "verification_note": "Menunggu pemeriksaan curator"
+  },
+  "content": "GANTI BAGIAN INI dengan isi dokumen yang memiliki izin untuk diproses. File template ini tidak boleh di-ingest langsung. Dokumen akan dipotong menjadi chunk dan tetap tidak dapat diretrieve sebelum diverifikasi curator."
+}

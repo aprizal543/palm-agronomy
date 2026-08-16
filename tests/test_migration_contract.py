@@ -7,7 +7,7 @@ def migration_text(name: str) -> str:
     return (ROOT / "migrations" / "versions" / name).read_text(encoding="utf-8").lower()
 
 
-def test_five_revisions_exist() -> None:
+def test_six_revisions_exist() -> None:
     revisions = sorted((ROOT / "migrations" / "versions").glob("*.py"))
     assert [item.name for item in revisions] == [
         "0001_extensions_enums.py",
@@ -15,6 +15,7 @@ def test_five_revisions_exist() -> None:
         "0003_blocks_spatial.py",
         "0004_telegram_agent.py",
         "0005_production_records.py",
+        "0006_rag_knowledge.py",
     ]
 
 
@@ -66,3 +67,16 @@ def test_production_requires_confirmation_and_database_invariants() -> None:
     assert "expected_farm_id <> new.farm_id" in sql
     assert "access_role in ('editor','validator')" in sql
     assert "new.harvest_date > current_date" in sql
+
+
+def test_rag_requires_verified_sources_and_keeps_evidence_trace() -> None:
+    sql = migration_text("0006_rag_knowledge.py")
+    assert "create extension if not exists vector" in sql
+    assert "create table palm.knowledge_sources" in sql
+    assert "verification_status" in sql
+    assert "verified_source_has_timestamp" in sql
+    assert "create table palm.knowledge_chunks" in sql
+    assert "embedding extensions.vector(1536)" in sql
+    assert "using gin(search_vector)" in sql
+    assert "create table palm.rag_query_logs" in sql
+    assert "retrieved_chunk_ids uuid[]" in sql

@@ -10,6 +10,7 @@ def test_tool_registry_is_allow_listed() -> None:
         "list_production_history",
         "record_production",
         "resolve_block_by_location",
+        "retrieve_agronomy_knowledge",
         "summarize_production",
     )
 

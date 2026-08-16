@@ -1,4 +1,4 @@
-# PalmAgronomy Backend — Sprint 3 v0.4.1
+# PalmAgronomy Backend — Sprint 5 v0.6.0
 
 Fondasi Farm, Block, dan PostGIS untuk PalmAgronomy AI Agent. Database production-like
 tetap PostgreSQL yang di-host Supabase; Docker Compose hanya disediakan sebagai opsi
@@ -9,6 +9,9 @@ PostGIS tetap menjadi source of truth; agent hanya boleh memanggil tool yang ter
 
 Sprint 3 menambahkan konteks Farm/Block dan pencatatan produksi TBS yang wajib dikonfirmasi
 manusia. PostgreSQL memvalidasi relasi farm-block serta hak tulis actor.
+
+Sprint 4 menambahkan RAG agronomy yang hanya mengambil chunk dari sumber terverifikasi,
+menampilkan citation, menolak menjawab saat evidence tidak cukup, dan menyimpan trace retrieval.
 
 ## Fitur Sprint 1
 
@@ -51,6 +54,31 @@ manusia. PostgreSQL memvalidasi relasi farm-block serta hak tulis actor.
 - `confirmation_action_id` unik mencegah double-submit dari callback Telegram.
 - Audit tool call dan human confirmation tanpa membuka SQL kepada Agent.
 
+## Fitur Sprint 4
+
+- Tabel source, chunk, dan query log pada schema privat `palm`.
+- Metadata sumber wajib: judul, penerbit, URL, checksum, origin, dan status verifikasi.
+- Hanya sumber `verified` yang dapat masuk hasil retrieval.
+- PostgreSQL full-text search sebagai baseline retrieval deterministik berbahasa Indonesia.
+- Stopword domain mencegah kata umum `kelapa/sawit/tanaman` menarik chunk tak relevan.
+- Extension `pgvector` dan kolom embedding 1536 dimensi disiapkan untuk semantic retrieval.
+- Tool allow-list `retrieve_agronomy_knowledge`; Agent tetap tidak memiliki raw SQL.
+- `/tanya <pertanyaan>` mengembalikan evidence, citation ringkas, dan safety note.
+- URL sumber tetap tersimpan untuk provenance/audit dan respons API, tetapi tidak ditampilkan
+  di Telegram agar tautan serta pratinjau PDF tidak memenuhi percakapan.
+- Jawaban `insufficient_evidence` menolak menebak ketika tidak ada sumber yang cocok.
+- Endpoint read-only `GET /api/v1/knowledge/search` untuk evaluasi retrieval.
+- Generic ingestion selalu berstatus `pending` hingga ditinjau curator.
+
+## Fitur Sprint 5
+
+- Router deterministik memisahkan pertanyaan operasional dan pertanyaan agronomi.
+- Pertanyaan `/tanya` tentang kondisi produksi membaca blok aktif dan `production_records`.
+- Analisis menampilkan produksi terakhir, tandan, luas PostGIS, hasil kg/ha, dan tanggal.
+- Satu catatan tidak dinyatakan sebagai tren; bot menyampaikan keterbatasan evidence.
+- Pertanyaan agronomi seperti pemupukan atau gulma tetap menggunakan RAG terverifikasi.
+- Seluruh pemanggilan tool konteks dan riwayat tetap masuk audit log ber-`trace_id`.
+
 ## Menjalankan dengan Supabase
 
 1. Buat project Supabase dan ambil connection string database.
@@ -64,6 +92,7 @@ python -m venv .venv
 pip install -e ".[dev]"
 python -m alembic upgrade head
 python -m scripts.seed_synthetic
+python -m scripts.seed_rag_demo
 python -m uvicorn app.main:app --reload
 ```
 
@@ -122,11 +151,43 @@ merupakan owner atau member farm dengan role `editor`/`validator`.
 /produksi 900 - 2026-08-15
 /riwayat 5
 /ringkasan 30
+/tanya bagaimana kondisi produksi blok saya?
+/tanya kapan waktu pemupukan kelapa sawit?
 ```
 
 Format `/produksi` adalah berat TBS dalam kg, jumlah tandan opsional (`-` jika kosong), dan
 tanggal opsional berformat ISO. Data baru masuk `production_records` setelah pengguna menekan
 tombol **Simpan**.
+
+## RAG Agronomy
+
+Seed acceptance memakai ringkasan terkurasi dari dokumen resmi Kementerian Pertanian:
+
+```powershell
+python -m scripts.seed_rag_demo
+python -m scripts.run_telegram_polling
+```
+
+Uji evidence tersedia dan evidence tidak tersedia:
+
+```text
+/tanya kapan waktu pemupukan kelapa sawit?
+/tanya bagaimana mengatur antena satelit di bulan?
+```
+
+Jawaban pertama harus menyertakan citation tanpa URL/PDF preview. Jawaban kedua harus
+menyatakan evidence tidak cukup dan tidak boleh membuat rekomendasi. Seed bersifat idempotent.
+
+Untuk memasukkan dokumen sendiri, salin `docs/knowledge_ingest.example.json`, lalu jalankan:
+
+```powershell
+python -m scripts.ingest_knowledge_json docs\knowledge_ingest.example.json
+```
+
+Dokumen umum selalu masuk sebagai `pending`; chunk belum dapat diambil sampai metadata dan
+isinya ditinjau lalu status source diubah menjadi `verified` oleh curator. Full-text retrieval
+aktif pada Sprint 4. Kolom pgvector tersedia, tetapi embedding belum dihasilkan sampai provider
+embedding dipilih dan dievaluasi pada corpus nyata.
 
 ## Pengujian lokal dengan PostGIS
 
@@ -153,6 +214,8 @@ tidak menebak satu blok ketika radius akurasi menyentuh batas atau lebih dari sa
 
 ## Batas Sprint
 
-Hosted LLM, rekomendasi agronomi, cuaca, RAG, Vision, dan deployment production belum
-diaktifkan. Sprint 3 menyediakan data operasional yang deterministic dan auditable sebagai
-fondasi RAG serta ML tanpa memberikan akses SQL langsung kepada model.
+Hosted generative LLM, semantic embedding pipeline, rekomendasi tindakan spesifik blok,
+cuaca, ML, Vision, dan deployment production belum diaktifkan. Sprint 5 memberikan analisis
+produksi kontekstual deterministik serta extractive-grounded
+answer dari corpus terverifikasi; sistem belum boleh disebut semantic RAG sebelum embedding
+provider dan retrieval evaluation diselesaikan.

@@ -1,5 +1,7 @@
 from app.models.block import Block
 from app.models.farm import Farm, FarmMember
+from app.models.knowledge import KnowledgeChunk, KnowledgeSource, RagQueryLog
+from app.models.production import ProductionRecord
 from app.models.telegram import AgentAuditLog, Conversation, PendingAction, TelegramUpdate
 from app.models.user import User
 
@@ -9,10 +11,11 @@ __all__ = [
     "Conversation",
     "Farm",
     "FarmMember",
+    "KnowledgeChunk",
+    "KnowledgeSource",
     "PendingAction",
+    "ProductionRecord",
+    "RagQueryLog",
     "TelegramUpdate",
     "User",
 ]
-from app.models.production import ProductionRecord
-
-__all__ = ["ProductionRecord"]

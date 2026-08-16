@@ -5,6 +5,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.blocks import BlockRepository
+from app.repositories.knowledge import KnowledgeRepository
 from app.repositories.production import ProductionRepository
 from app.schemas.block import LocationResolution
 
@@ -48,6 +49,13 @@ class AgronomyToolRegistry:
                 name="summarize_production",
                 description="Aggregate confirmed production for the active block and date window.",
                 handler=self.summarize_production,
+            ),
+            "retrieve_agronomy_knowledge": AgentTool(
+                name="retrieve_agronomy_knowledge",
+                description=(
+                    "Retrieve passages only from verified agronomy sources with citation metadata."
+                ),
+                handler=self.retrieve_agronomy_knowledge,
             ),
         }
 
@@ -104,3 +112,6 @@ class AgronomyToolRegistry:
         return await ProductionRepository(self.session).summary(
             chat_id=chat_id, telegram_user_id=telegram_user_id, days=days
         )
+
+    async def retrieve_agronomy_knowledge(self, **arguments: Any) -> dict[str, Any]:
+        return await KnowledgeRepository(self.session).search(**arguments)

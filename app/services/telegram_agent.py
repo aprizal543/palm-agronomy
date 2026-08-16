@@ -21,6 +21,15 @@ from app.schemas.telegram import (
     TelegramUpdate,
     TelegramWebhookResult,
 )
+from app.services.production_insight import (
+    format_production_context_answer,
+    is_production_context_question,
+)
+from app.services.rag import (
+    build_grounded_answer,
+    format_telegram_rag_answer,
+    parse_agronomy_question,
+)
 
 WELCOME = (
     "Halo! Saya PalmAgronomy Agent. Kirim lokasi Telegram Anda untuk mencari blok kebun. "
@@ -35,6 +44,7 @@ HELP = (
     "• /produksi <kg> [tandan] [YYYY-MM-DD] — siapkan catatan TBS\n"
     "• /riwayat [jumlah] — tampilkan catatan terakhir (maksimal 10)\n"
     "• /ringkasan [hari] — ringkasan produksi (maksimal 365 hari)"
+    "\n• /tanya <pertanyaan> — analisis data blok atau cari sumber agronomi terverifikasi"
 )
 
 
@@ -175,6 +185,16 @@ class TelegramAgentService:
         }
         if command in intents:
             return intents[command]
+        if command in {"/tanya", "/ask"}:
+            try:
+                question = parse_agronomy_question(text)
+            except ValueError:
+                return "agronomy_question"
+            return (
+                "production_question"
+                if is_production_context_question(question)
+                else "agronomy_question"
+            )
         return "unknown"
 
     async def _ensure_identity(self, message: TelegramMessage) -> None:
@@ -207,11 +227,72 @@ class TelegramAgentService:
             await self._handle_production_history(update, message, trace_id)
         elif command == "/ringkasan":
             await self._handle_production_summary(update, message, trace_id)
+        elif command in {"/tanya", "/ask"}:
+            await self._handle_agronomy_question(update, message, trace_id)
         else:
             await self.gateway.send_message(
                 message.chat.id,
                 "Saya belum memahami pesan itu. Ketik /help untuk melihat perintah.",
             )
+
+    async def _handle_agronomy_question(
+        self, update: TelegramUpdate, message: TelegramMessage, trace_id: UUID
+    ) -> None:
+        try:
+            question = parse_agronomy_question(message.text or "")
+        except ValueError as exc:
+            await self.gateway.send_message(message.chat.id, str(exc))
+            return
+        if is_production_context_question(question):
+            await self._handle_production_question(update, message, trace_id)
+            return
+        retrieval = await self._execute_tool(
+            update=update,
+            trace_id=trace_id,
+            intent="agronomy_question",
+            tool_name="retrieve_agronomy_knowledge",
+            arguments={
+                "question": question,
+                "top_k": 3,
+                "trace_id": trace_id,
+                "channel": "telegram",
+                "update_id": update.update_id,
+                "chat_id": message.chat.id,
+                "telegram_user_id": update.telegram_user_id,
+            },
+        )
+        answer = build_grounded_answer(question, retrieval)
+        await self.gateway.send_message(message.chat.id, format_telegram_rag_answer(answer))
+
+    async def _handle_production_question(
+        self, update: TelegramUpdate, message: TelegramMessage, trace_id: UUID
+    ) -> None:
+        context = await self._context_result(update, trace_id, "production_question")
+        if context.get("status") != "ready":
+            await self.gateway.send_message(
+                message.chat.id,
+                format_production_context_answer(context, []),
+            )
+            return
+        history = await self._execute_tool(
+            update=update,
+            trace_id=trace_id,
+            intent="production_question",
+            tool_name="list_production_history",
+            arguments={
+                "chat_id": message.chat.id,
+                "telegram_user_id": update.telegram_user_id or 0,
+                "limit": 10,
+            },
+        )
+        if history.get("status") != "ready":
+            await self.gateway.send_message(
+                message.chat.id,
+                "Konteks blok atau hak akses produksi belum tersedia.",
+            )
+            return
+        answer = format_production_context_answer(context, history.get("records", []))
+        await self.gateway.send_message(message.chat.id, answer)
 
     async def _execute_tool(
         self,
