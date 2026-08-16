@@ -42,4 +42,3 @@ class GISService:
             if area_m2 is not None
             else None,
         )
-

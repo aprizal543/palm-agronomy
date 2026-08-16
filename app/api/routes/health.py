@@ -18,4 +18,3 @@ async def database_health(session: SessionDep) -> dict[str, str]:
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Database tidak tersedia") from exc
     return {"status": "ok", "database": "reachable"}
-

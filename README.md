@@ -1,8 +1,11 @@
-# PalmAgronomy Backend — Sprint 1 v0.2
+# PalmAgronomy Backend — Sprint 2 v0.3.2
 
 Fondasi Farm, Block, dan PostGIS untuk PalmAgronomy AI Agent. Database production-like
 tetap PostgreSQL yang di-host Supabase; Docker Compose hanya disediakan sebagai opsi
 pengujian lokal yang reproducible.
+
+Sprint 2 menambahkan adapter Telegram dan orchestration layer di atas fondasi GIS.
+PostGIS tetap menjadi source of truth; agent hanya boleh memanggil tool yang terdaftar.
 
 ## Fitur Sprint 1
 
@@ -22,6 +25,19 @@ pengujian lokal yang reproducible.
 - Endpoint health, users, farms, blocks, validasi GeoJSON, dan pencarian lokasi.
 - Endpoint mapping dan human validation terpisah untuk farm/block polygon.
 
+## Fitur Sprint 2
+
+- Parser payload Telegram untuk message, Location, dan callback query.
+- Idempotency berdasarkan `update_id`, termasuk retry untuk proses gagal atau stale.
+- Auto-onboarding Telegram user tanpa mengubah role user yang sudah ada.
+- Conversation state dan active block context per chat.
+- Pending confirmation 15 menit dengan inline keyboard untuk lokasi dekat batas/ambigu.
+- Audit log ber-`trace_id` untuk intent, tool call, hasil, latency, dan human confirmation.
+- Allow-list tool `resolve_block_by_location`; agent tidak menerima SQL/database handle.
+- GPS `horizontal_accuracy` diteruskan apa adanya ke query PostGIS.
+- Dua transport: polling untuk development lokal dan webhook ber-secret untuk deployment.
+- Provider agent default `deterministic`; integrasi hosted LLM belum diperlukan untuk uji ini.
+
 ## Menjalankan dengan Supabase
 
 1. Buat project Supabase dan ambil connection string database.
@@ -33,12 +49,54 @@ pengujian lokal yang reproducible.
 python -m venv .venv
 # Windows PowerShell: .venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
-alembic upgrade head
+python -m alembic upgrade head
 python -m scripts.seed_synthetic
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload
 ```
 
 Dokumentasi API tersedia di `http://127.0.0.1:8000/docs`.
+
+## Menjalankan Telegram secara lokal (polling)
+
+1. Buat bot melalui `@BotFather`, lalu simpan token hanya di `.env`.
+2. Tambahkan/ubah nilai berikut:
+
+```env
+TELEGRAM_ENABLED=true
+TELEGRAM_MODE=polling
+TELEGRAM_BOT_TOKEN=token_dari_botfather
+TELEGRAM_WEBHOOK_SECRET=secret_acak_untuk_nanti
+```
+
+3. Terapkan migration dan jalankan polling:
+
+```powershell
+python -m alembic upgrade head
+python -m alembic current
+python -m scripts.run_telegram_polling
+```
+
+Jangan jalankan Uvicorn webhook dan polling secara bersamaan. Script polling menghapus
+registrasi webhook lama tanpa membuang pending updates, karena Telegram tidak mengizinkan
+`getUpdates` saat webhook aktif.
+
+Jika pemrosesan sebuah update gagal sementara (misalnya koneksi database terputus), polling
+tidak langsung mengakuinya. Update yang sama dicoba kembali hingga tiga kali sebelum dilewati
+sebagai failed/poison update; detail aman tetap tersedia pada tabel audit.
+
+## Menjalankan Telegram via webhook
+
+Set `TELEGRAM_MODE=webhook`, deploy API pada URL HTTPS publik, lalu daftarkan:
+
+```text
+POST https://api.telegram.org/bot<TOKEN>/setWebhook
+url=https://<HOST>/api/v1/telegram/webhook
+secret_token=<TELEGRAM_WEBHOOK_SECRET>
+allowed_updates=["message","callback_query"]
+```
+
+Endpoint memverifikasi header `X-Telegram-Bot-Api-Secret-Token`. Jangan menaruh token bot,
+database password, atau webhook secret di source, screenshot, log, maupun GitHub.
 
 ## Pengujian lokal dengan PostGIS
 
@@ -65,5 +123,6 @@ tidak menebak satu blok ketika radius akurasi menyentuh batas atau lebih dari sa
 
 ## Batas Sprint
 
-Telegram adapter, produksi, cuaca, Agent tool calling, RAG, dan Vision belum diaktifkan.
-Modul tersebut masuk sprint berikutnya setelah fondasi GIS lolos pada Supabase aktual.
+Hosted LLM, rekomendasi agronomi, cuaca, RAG, Vision, dan deployment production belum
+diaktifkan. Sprint 2 ini membangun jalur Telegram yang deterministic, auditable, dan siap
+menjadi fondasi provider LLM tanpa memberikan akses SQL langsung kepada model.

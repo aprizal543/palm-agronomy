@@ -13,9 +13,7 @@ router = APIRouter()
 
 
 def serialize_block(block) -> BlockRead:
-    return BlockRead.model_validate(
-        {**block.__dict__, "boundary": getattr(block, "boundary_geojson")}
-    )
+    return BlockRead.model_validate({**block.__dict__, "boundary": block.boundary_geojson})
 
 
 @router.post("", response_model=BlockRead, status_code=status.HTTP_201_CREATED)

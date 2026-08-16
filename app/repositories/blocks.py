@@ -5,9 +5,9 @@ from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.block import Block
+from app.models.enums import RecordStatus
 from app.schemas.block import BlockCreate
 from app.schemas.common import SpatialValidationDecision
-from app.models.enums import RecordStatus
 
 
 class BlockRepository:

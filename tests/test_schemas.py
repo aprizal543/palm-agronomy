@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -46,7 +46,7 @@ def test_future_planting_year_is_rejected() -> None:
             actor_user_id="22222222-2222-2222-2222-222222222222",
             block_code="A01",
             boundary=square(),
-            planting_year=datetime.now().year + 1,
+            planting_year=datetime.now(UTC).year + 1,
         )
 
 

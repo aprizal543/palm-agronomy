@@ -9,12 +9,15 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.core.config import get_settings
 from app.db.base import Base
-from app.models import block, farm, user  # noqa: F401
+from app.models import block, farm, telegram, user  # noqa: F401
 
 config = context.config
 if config.config_file_name:
     fileConfig(config.config_file_name)
 
+# Alembic stores this value through ConfigParser, where `%` enables interpolation.
+# Escape percent-encoded URL credentials (for example `%40`) before setting the option;
+# ConfigParser converts `%%` back to `%` when SQLAlchemy reads the URL.
 migration_url = get_settings().migration_url
 config.set_main_option("sqlalchemy.url", migration_url.replace("%", "%%"))
 target_metadata = Base.metadata
@@ -40,6 +43,7 @@ async def run_async_migrations() -> None:
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
+    # begin() commits Alembic's version row and DDL after run_sync completes.
     async with connectable.begin() as connection:
         await connection.run_sync(do_run_migrations)
     await connectable.dispose()

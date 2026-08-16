@@ -4,8 +4,8 @@ from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import SessionDep
 from app.repositories.farms import FarmRepository
-from app.schemas.farm import FarmBoundaryUpdate, FarmCreate, FarmRead
 from app.schemas.common import SpatialValidationDecision
+from app.schemas.farm import FarmBoundaryUpdate, FarmCreate, FarmRead
 from app.services.farms import FarmService
 
 router = APIRouter()

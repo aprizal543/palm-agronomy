@@ -17,8 +17,8 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title=settings.app_name,
-    version="0.2.0",
-    description="Sprint 1: Farm, Block, dan PostGIS",
+    version="0.3.1",
+    description="Sprint 2: Telegram Adapter dan AI Agent Orchestration",
     lifespan=lifespan,
 )
 app.include_router(api_router, prefix=settings.api_v1_prefix)

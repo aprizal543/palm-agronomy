@@ -4,7 +4,8 @@ from uuid import UUID, uuid4
 
 from geoalchemy2 import Geometry
 from sqlalchemy import DateTime, ForeignKey, Numeric, SmallInteger, String, text
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -40,6 +41,10 @@ class Block(Base):
     data_origin: Mapped[DataOrigin] = mapped_column(
         palm_enum(DataOrigin, "data_origin"), default=DataOrigin.USER_INPUT
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=text("now()")
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=text("now()")
+    )
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

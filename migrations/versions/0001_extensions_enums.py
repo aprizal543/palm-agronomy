@@ -9,8 +9,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    #op.execute("create schema if not exists extensions")
-    #op.execute("create extension if not exists postgis with schema extensions")
+    op.execute("create schema if not exists extensions")
+    op.execute("create extension if not exists postgis with schema extensions")
     op.execute("create schema if not exists palm")
     op.execute("create type palm.user_role as enum ('farmer','field_officer','admin')")
     op.execute("create type palm.farm_access_role as enum ('viewer','editor','validator')")

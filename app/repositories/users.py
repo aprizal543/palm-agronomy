@@ -20,4 +20,3 @@ class UserRepository:
         return await self.session.scalar(
             select(User).where(User.telegram_user_id == telegram_user_id)
         )
-

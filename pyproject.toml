@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "palmagronomy-backend"
-version = "0.2.0"
-description = "Farm, block, and PostGIS foundation for the PalmAgronomy AI Agent"
+version = "0.3.2"
+description = "Telegram adapter and auditable tool orchestration for PalmAgronomy AI Agent"
 requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.116,<1",
@@ -15,11 +15,11 @@ dependencies = [
   "alembic>=1.16,<2",
   "geoalchemy2>=0.17,<1",
   "pydantic-settings>=2.10,<3",
+  "httpx>=0.28,<1",
 ]
 
 [project.optional-dependencies]
 dev = [
-  "httpx>=0.28,<1",
   "pytest>=8.4,<9",
   "pytest-asyncio>=1.0,<2",
   "ruff>=0.12,<1",
@@ -36,3 +36,7 @@ markers = ["integration: requires a PostGIS DATABASE_URL"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[tool.ruff.lint]
+# SQLAlchemy declarative models intentionally use dictionary-valued __table_args__.
+ignore = ["RUF012"]

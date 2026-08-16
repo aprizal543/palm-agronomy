@@ -55,9 +55,7 @@ class FarmRepository:
         if farm is None:
             return None
         geojson = json.dumps(data.boundary.model_dump(mode="json"))
-        farm.boundary = func.ST_Multi(
-            func.ST_SetSRID(func.ST_GeomFromGeoJSON(geojson), 4326)
-        )
+        farm.boundary = func.ST_Multi(func.ST_SetSRID(func.ST_GeomFromGeoJSON(geojson), 4326))
         farm.boundary_source = data.boundary_source
         farm.boundary_source_metadata = data.boundary_source_metadata
         farm.mapped_by = data.actor_user_id
@@ -67,9 +65,7 @@ class FarmRepository:
 
     async def has_write_access(self, farm_id: UUID, user_id: UUID) -> bool:
         statement = select(
-            select(Farm.id)
-            .where(Farm.id == farm_id, Farm.owner_id == user_id)
-            .exists()
+            select(Farm.id).where(Farm.id == farm_id, Farm.owner_id == user_id).exists()
             | select(FarmMember.farm_id)
             .where(
                 FarmMember.farm_id == farm_id,
@@ -81,7 +77,9 @@ class FarmRepository:
         return bool(await self.session.scalar(statement))
 
     async def has_validation_access(self, farm_id: UUID, user_id: UUID) -> bool:
-        role = await self.session.scalar(select(User.role).where(User.id == user_id, User.is_active))
+        role = await self.session.scalar(
+            select(User.role).where(User.id == user_id, User.is_active)
+        )
         if role == UserRole.ADMIN:
             return True
         if role != UserRole.FIELD_OFFICER:

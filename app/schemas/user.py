@@ -35,4 +35,3 @@ class UserRead(BaseModel):
     is_active: bool
     data_origin: DataOrigin
     created_at: datetime
-

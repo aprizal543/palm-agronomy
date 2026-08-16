@@ -16,7 +16,9 @@ class BlockService:
 
     async def create(self, data: BlockCreate):
         if not await self.farms.has_write_access(data.farm_id, data.actor_user_id):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tidak memiliki akses edit")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Tidak memiliki akses edit"
+            )
         try:
             block = await self.blocks.create(data)
             await self.session.commit()
@@ -42,14 +44,18 @@ class BlockService:
                 ),
                 "Polygon blok ditolak oleh validasi spasial",
             )
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=safe_detail) from exc
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=safe_detail
+            ) from exc
 
     async def validate_boundary(self, block_id, data: SpatialValidationDecision):
         block = await self.blocks.get(block_id)
         if block is None:
             raise HTTPException(status_code=404, detail="Blok tidak ditemukan")
         if not await self.farms.has_validation_access(block.farm_id, data.actor_user_id):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Akses validator diperlukan")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Akses validator diperlukan"
+            )
         block = await self.blocks.validate_boundary(block_id, data)
         await self.session.commit()
         return block

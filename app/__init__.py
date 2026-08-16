@@ -1,2 +1,1 @@
 """PalmAgronomy backend package."""
-

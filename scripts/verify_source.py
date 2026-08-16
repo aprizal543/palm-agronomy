@@ -1,6 +1,7 @@
 """Dependency-free checks that can run before the virtual environment is installed."""
 
 import ast
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
@@ -20,6 +21,7 @@ def main() -> None:
         "0001_extensions_enums.py",
         "0002_users_farms.py",
         "0003_blocks_spatial.py",
+        "0004_telegram_agent.py",
     ]
 
     spatial = (ROOT / "migrations/versions/0003_blocks_spatial.py").read_text(encoding="utf-8")
@@ -35,18 +37,30 @@ def main() -> None:
     ):
         assert contract in spatial.lower(), f"Kontrak GIS hilang: {contract}"
 
-    forbidden = ("SUPABASE_SERVICE_ROLE_KEY=", "TELEGRAM_BOT_TOKEN=")
+    secret_patterns = (
+        re.compile(r"SUPABASE_SERVICE_ROLE_KEY\s*=\s*[^\s<]+"),
+        re.compile(r"\b\d{8,12}:[A-Za-z0-9_-]{30,}\b"),
+    )
     for path in ROOT.rglob("*"):
         if (
             path.is_file()
             and path != Path(__file__)
-            and ".git" not in path.parts
-            and "__pycache__" not in path.parts
+            and not path.name.startswith(".env")
+            and not {
+                ".git",
+                "__pycache__",
+                "palm_agronomy",
+                ".venv",
+                ".pytest_cache",
+                ".ruff_cache",
+            }.intersection(path.parts)
         ):
             content = path.read_text(encoding="utf-8", errors="ignore")
-            assert not any(secret in content for secret in forbidden), f"Secret ditemukan: {path}"
+            assert not any(pattern.search(content) for pattern in secret_patterns), (
+                f"Secret ditemukan: {path}"
+            )
 
-    print(f"Source verification passed: {len(python_files)} Python files, 3 migrations.")
+    print(f"Source verification passed: {len(python_files)} Python files, 4 migrations.")
 
 
 if __name__ == "__main__":

@@ -18,4 +18,3 @@ SessionLocal = async_sessionmaker(engine, expire_on_commit=False, autoflush=Fals
 async def get_session() -> AsyncIterator[AsyncSession]:
     async with SessionLocal() as session:
         yield session
-

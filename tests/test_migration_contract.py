@@ -7,12 +7,13 @@ def migration_text(name: str) -> str:
     return (ROOT / "migrations" / "versions" / name).read_text(encoding="utf-8").lower()
 
 
-def test_three_sprint_one_revisions_exist() -> None:
+def test_four_revisions_exist() -> None:
     revisions = sorted((ROOT / "migrations" / "versions").glob("*.py"))
     assert [item.name for item in revisions] == [
         "0001_extensions_enums.py",
         "0002_users_farms.py",
         "0003_blocks_spatial.py",
+        "0004_telegram_agent.py",
     ]
 
 
@@ -44,3 +45,12 @@ def test_share_location_is_a_point_not_a_boundary() -> None:
     assert "declared_area_ha" in farms
     assert "verified_area_ha" in farms
     assert "boundary_source" in farms
+
+
+def test_telegram_update_idempotency_and_audit_contract() -> None:
+    sql = migration_text("0004_telegram_agent.py")
+    assert "update_id bigint primary key" in sql
+    assert "create table palm.conversations" in sql
+    assert "create table palm.pending_actions" in sql
+    assert "create table palm.agent_audit_logs" in sql
+    assert "trace_id uuid not null" in sql

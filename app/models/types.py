@@ -9,4 +9,3 @@ def palm_enum(enum_cls, name: str) -> Enum:
         values_callable=lambda values: [item.value for item in values],
         create_type=False,
     )
-

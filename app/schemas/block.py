@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID
@@ -24,7 +24,7 @@ class BlockCreate(BaseModel):
     @field_validator("planting_year")
     @classmethod
     def reject_future_year(cls, value: int | None) -> int | None:
-        if value is not None and value > datetime.now().year:
+        if value is not None and value > datetime.now(UTC).year:
             raise ValueError("planting_year tidak boleh melebihi tahun berjalan")
         return value
 
