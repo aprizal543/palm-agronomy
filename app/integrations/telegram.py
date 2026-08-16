@@ -12,6 +12,8 @@ class TelegramGateway(Protocol):
 
     async def answer_callback(self, callback_query_id: str, text: str) -> None: ...
 
+    async def clear_inline_keyboard(self, chat_id: int, message_id: int) -> None: ...
+
 
 class TelegramBotAPI:
     def __init__(self, token: str, timeout_s: float = 10.0):
@@ -39,6 +41,16 @@ class TelegramBotAPI:
     async def answer_callback(self, callback_query_id: str, text: str) -> None:
         await self._post(
             "answerCallbackQuery", {"callback_query_id": callback_query_id, "text": text}
+        )
+
+    async def clear_inline_keyboard(self, chat_id: int, message_id: int) -> None:
+        await self._post(
+            "editMessageReplyMarkup",
+            {
+                "chat_id": chat_id,
+                "message_id": message_id,
+                "reply_markup": {"inline_keyboard": []},
+            },
         )
 
     async def prepare_polling(self) -> None:

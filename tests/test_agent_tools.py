@@ -5,7 +5,13 @@ from app.agent.tools import AgronomyToolRegistry
 
 def test_tool_registry_is_allow_listed() -> None:
     registry = AgronomyToolRegistry(session=None)
-    assert registry.names == ("resolve_block_by_location",)
+    assert registry.names == (
+        "get_farm_block_context",
+        "list_production_history",
+        "record_production",
+        "resolve_block_by_location",
+        "summarize_production",
+    )
 
 
 @pytest.mark.asyncio

@@ -3,7 +3,8 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.telegram import TelegramUpdate
+from app.integrations.telegram import TelegramBotAPI
+from app.schemas.telegram import TelegramCallbackQuery, TelegramUpdate
 from app.services.telegram_agent import TelegramAgentService, safe_error_label
 
 
@@ -66,3 +67,52 @@ def test_safe_error_label_includes_sqlstate_only() -> None:
     assert safe_error_label(WrappedError("sensitive detail")) == (
         "WrappedError[sqlstate=08006]"
     )
+
+
+@pytest.mark.asyncio
+async def test_clear_inline_keyboard_uses_empty_markup(monkeypatch: pytest.MonkeyPatch) -> None:
+    gateway = TelegramBotAPI("test-token")
+    request: dict = {}
+
+    async def fake_post(method: str, payload: dict, request_timeout_s=None):
+        request.update({"method": method, "payload": payload})
+
+    monkeypatch.setattr(gateway, "_post", fake_post)
+
+    await gateway.clear_inline_keyboard(chat_id=55, message_id=9)
+
+    assert request == {
+        "method": "editMessageReplyMarkup",
+        "payload": {
+            "chat_id": 55,
+            "message_id": 9,
+            "reply_markup": {"inline_keyboard": []},
+        },
+    }
+
+
+@pytest.mark.asyncio
+async def test_agent_clears_buttons_from_callback_message() -> None:
+    class FakeGateway:
+        cleared: tuple[int, int] | None = None
+
+        async def clear_inline_keyboard(self, chat_id: int, message_id: int) -> None:
+            self.cleared = (chat_id, message_id)
+
+    gateway = FakeGateway()
+    service = TelegramAgentService(session=None, gateway=gateway)
+    callback = TelegramCallbackQuery.model_validate(
+        {
+            "id": "callback-1",
+            "from": {"id": 55, "first_name": "Petani"},
+            "message": {
+                "message_id": 9,
+                "chat": {"id": 55, "type": "private"},
+            },
+            "data": f"prod:{uuid4()}:confirm",
+        }
+    )
+
+    await service._clear_callback_buttons(callback)
+
+    assert gateway.cleared == (55, 9)

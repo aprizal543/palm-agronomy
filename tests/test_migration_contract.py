@@ -7,13 +7,14 @@ def migration_text(name: str) -> str:
     return (ROOT / "migrations" / "versions" / name).read_text(encoding="utf-8").lower()
 
 
-def test_four_revisions_exist() -> None:
+def test_five_revisions_exist() -> None:
     revisions = sorted((ROOT / "migrations" / "versions").glob("*.py"))
     assert [item.name for item in revisions] == [
         "0001_extensions_enums.py",
         "0002_users_farms.py",
         "0003_blocks_spatial.py",
         "0004_telegram_agent.py",
+        "0005_production_records.py",
     ]
 
 
@@ -54,3 +55,14 @@ def test_telegram_update_idempotency_and_audit_contract() -> None:
     assert "create table palm.pending_actions" in sql
     assert "create table palm.agent_audit_logs" in sql
     assert "trace_id uuid not null" in sql
+
+
+def test_production_requires_confirmation_and_database_invariants() -> None:
+    sql = migration_text("0005_production_records.py")
+    assert "create table palm.production_records" in sql
+    assert "confirmation_action_id uuid not null unique" in sql
+    assert "source_update_id bigint not null" in sql
+    assert "validate_production_record" in sql
+    assert "expected_farm_id <> new.farm_id" in sql
+    assert "access_role in ('editor','validator')" in sql
+    assert "new.harvest_date > current_date" in sql

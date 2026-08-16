@@ -17,7 +17,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title=settings.app_name,
-    version="0.3.1",
+    version="0.4.1",
     description="Sprint 2: Telegram Adapter dan AI Agent Orchestration",
     lifespan=lifespan,
 )

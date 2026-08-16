@@ -13,3 +13,6 @@ __all__ = [
     "TelegramUpdate",
     "User",
 ]
+from app.models.production import ProductionRecord
+
+__all__ = ["ProductionRecord"]

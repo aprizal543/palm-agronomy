@@ -5,6 +5,7 @@ from sqlalchemy import and_, func, or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.block import Block
 from app.models.enums import DataOrigin
 from app.models.telegram import AgentAuditLog, Conversation, PendingAction, TelegramUpdate
 from app.models.user import User
@@ -115,6 +116,25 @@ class TelegramRepository:
         await self.session.flush()
         return action
 
+    async def create_pending_production(
+        self, *, chat_id: int, telegram_user_id: int, payload: dict
+    ) -> PendingAction:
+        await self.session.execute(
+            update(PendingAction)
+            .where(PendingAction.chat_id == chat_id, PendingAction.status == "pending")
+            .values(status="cancelled", resolved_at=datetime.now(UTC))
+        )
+        action = PendingAction(
+            chat_id=chat_id,
+            telegram_user_id=telegram_user_id,
+            action_type="confirm_production_record",
+            payload=payload,
+            expires_at=datetime.now(UTC) + timedelta(minutes=15),
+        )
+        self.session.add(action)
+        await self.session.flush()
+        return action
+
     async def get_pending(self, action_id: UUID) -> PendingAction | None:
         return await self.session.scalar(
             select(PendingAction).where(PendingAction.id == action_id).with_for_update()
@@ -126,14 +146,30 @@ class TelegramRepository:
         await self.session.execute(
             update(Conversation)
             .where(Conversation.chat_id == action.chat_id)
-            .values(state="idle", current_block_id=block_id)
+            .values(
+                state="idle",
+                current_block_id=block_id,
+                current_farm_id=select(Block.farm_id)
+                .where(Block.id == block_id)
+                .scalar_subquery(),
+            )
         )
+
+    async def resolve_pending(self, action: PendingAction, status: str) -> None:
+        action.status = status
+        action.resolved_at = datetime.now(UTC)
 
     async def set_current_block(self, chat_id: int, block_id: UUID) -> None:
         await self.session.execute(
             update(Conversation)
             .where(Conversation.chat_id == chat_id)
-            .values(state="idle", current_block_id=block_id)
+            .values(
+                state="idle",
+                current_block_id=block_id,
+                current_farm_id=select(Block.farm_id)
+                .where(Block.id == block_id)
+                .scalar_subquery(),
+            )
         )
 
     def add_audit(

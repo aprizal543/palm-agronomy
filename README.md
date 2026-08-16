@@ -1,4 +1,4 @@
-# PalmAgronomy Backend — Sprint 2 v0.3.2
+# PalmAgronomy Backend — Sprint 3 v0.4.1
 
 Fondasi Farm, Block, dan PostGIS untuk PalmAgronomy AI Agent. Database production-like
 tetap PostgreSQL yang di-host Supabase; Docker Compose hanya disediakan sebagai opsi
@@ -6,6 +6,9 @@ pengujian lokal yang reproducible.
 
 Sprint 2 menambahkan adapter Telegram dan orchestration layer di atas fondasi GIS.
 PostGIS tetap menjadi source of truth; agent hanya boleh memanggil tool yang terdaftar.
+
+Sprint 3 menambahkan konteks Farm/Block dan pencatatan produksi TBS yang wajib dikonfirmasi
+manusia. PostgreSQL memvalidasi relasi farm-block serta hak tulis actor.
 
 ## Fitur Sprint 1
 
@@ -37,6 +40,16 @@ PostGIS tetap menjadi source of truth; agent hanya boleh memanggil tool yang ter
 - GPS `horizontal_accuracy` diteruskan apa adanya ke query PostGIS.
 - Dua transport: polling untuk development lokal dan webhook ber-secret untuk deployment.
 - Provider agent default `deterministic`; integrasi hosted LLM belum diperlukan untuk uji ini.
+
+## Fitur Sprint 3
+
+- Tabel `production_records` untuk berat TBS, jumlah tandan, tanggal panen, dan provenance.
+- Invariant database memastikan block confirmed, block milik farm, dan actor memiliki hak tulis.
+- Tool allow-list untuk konteks aktif, simpan produksi, riwayat, dan ringkasan.
+- Perintah Telegram `/context`, `/produksi`, `/riwayat`, dan `/ringkasan`.
+- Draft produksi kedaluwarsa setelah 15 menit dan tidak disimpan tanpa tombol **Simpan**.
+- `confirmation_action_id` unik mencegah double-submit dari callback Telegram.
+- Audit tool call dan human confirmation tanpa membuka SQL kepada Agent.
 
 ## Menjalankan dengan Supabase
 
@@ -98,6 +111,23 @@ allowed_updates=["message","callback_query"]
 Endpoint memverifikasi header `X-Telegram-Bot-Api-Secret-Token`. Jangan menaruh token bot,
 database password, atau webhook secret di source, screenshot, log, maupun GitHub.
 
+## Perintah produksi Telegram
+
+Pilih blok aktif terlebih dahulu dengan mengirim Location dari area blok. Akun juga harus
+merupakan owner atau member farm dengan role `editor`/`validator`.
+
+```text
+/context
+/produksi 1250 80
+/produksi 900 - 2026-08-15
+/riwayat 5
+/ringkasan 30
+```
+
+Format `/produksi` adalah berat TBS dalam kg, jumlah tandan opsional (`-` jika kosong), dan
+tanggal opsional berformat ISO. Data baru masuk `production_records` setelah pengguna menekan
+tombol **Simpan**.
+
 ## Pengujian lokal dengan PostGIS
 
 ```bash
@@ -124,5 +154,5 @@ tidak menebak satu blok ketika radius akurasi menyentuh batas atau lebih dari sa
 ## Batas Sprint
 
 Hosted LLM, rekomendasi agronomi, cuaca, RAG, Vision, dan deployment production belum
-diaktifkan. Sprint 2 ini membangun jalur Telegram yang deterministic, auditable, dan siap
-menjadi fondasi provider LLM tanpa memberikan akses SQL langsung kepada model.
+diaktifkan. Sprint 3 menyediakan data operasional yang deterministic dan auditable sebagai
+fondasi RAG serta ML tanpa memberikan akses SQL langsung kepada model.
