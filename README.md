@@ -1,4 +1,4 @@
-# PalmAgronomy Backend — Sprint 6 v0.7.1
+# PalmAgronomy Backend — Sprint 7 v0.8.0
 
 Fondasi Farm, Block, dan PostGIS untuk PalmAgronomy AI Agent. Database production-like
 tetap PostgreSQL yang di-host Supabase; Docker Compose hanya disediakan sebagai opsi
@@ -91,6 +91,16 @@ menampilkan citation, menolak menjawab saat evidence tidak cukup, dan menyimpan 
   analisis produksi, pertanyaan agronomi, dan draft pencatatan produksi.
 - Operasi tulis dari bahasa alami tetap menghasilkan tombol **Simpan/Batalkan**.
 - Pesan yang tidak dikenali ditolak dengan aman dan tidak ditebak.
+
+## Fitur Sprint 7
+
+- Endpoint liveness `/api/v1/health/live` tanpa ketergantungan database.
+- Endpoint readiness `/api/v1/health/ready` dengan timeout pemeriksaan database.
+- Validasi konfigurasi gagal-cepat untuk token Telegram, webhook secret, dan production SQL log.
+- Structured JSON logging opsional melalui `JSON_LOGS=true`.
+- Versi aplikasi memiliki satu source of truth pada `app/core/version.py`.
+- Container berjalan sebagai non-root user dan tidak menyalin `.env`.
+- Docker healthcheck menggunakan endpoint liveness.
 
 ## Menjalankan dengan Supabase
 

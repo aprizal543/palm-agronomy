@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "palmagronomy-backend"
-version = "0.7.1"
+version = "0.8.0"
 description = "Auditable geospatial, production, and agronomy RAG tools for PalmAgronomy"
 requires-python = ">=3.12"
 dependencies = [
