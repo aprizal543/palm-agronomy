@@ -1,4 +1,4 @@
-# PalmAgronomy Backend — Sprint 5 v0.6.0
+# PalmAgronomy Backend — Sprint 6 v0.7.1
 
 Fondasi Farm, Block, dan PostGIS untuk PalmAgronomy AI Agent. Database production-like
 tetap PostgreSQL yang di-host Supabase; Docker Compose hanya disediakan sebagai opsi
@@ -79,6 +79,19 @@ menampilkan citation, menolak menjawab saat evidence tidak cukup, dan menyimpan 
 - Pertanyaan agronomi seperti pemupukan atau gulma tetap menggunakan RAG terverifikasi.
 - Seluruh pemanggilan tool konteks dan riwayat tetap masuk audit log ber-`trace_id`.
 
+## Fitur Sprint 6
+
+- Perintah `/monitor [hari]` untuk monitoring produksi blok aktif.
+- Produktivitas periode dihitung sebagai total TBS dibagi luas PostGIS.
+- Menampilkan rata-rata per catatan dan rata-rata berat per tandan.
+- Membandingkan dua catatan terbaru ketika evidence tersedia.
+- Status kualitas data membedakan belum tersedia, terbatas, dan deskriptif.
+- Monitoring tidak diklaim sebagai prediksi atau rekomendasi agronomi.
+- Router percakapan menerima bahasa alami untuk context, monitoring, riwayat, ringkasan,
+  analisis produksi, pertanyaan agronomi, dan draft pencatatan produksi.
+- Operasi tulis dari bahasa alami tetap menghasilkan tombol **Simpan/Batalkan**.
+- Pesan yang tidak dikenali ditolak dengan aman dan tidak ditebak.
+
 ## Menjalankan dengan Supabase
 
 1. Buat project Supabase dan ambil connection string database.
@@ -151,8 +164,18 @@ merupakan owner atau member farm dengan role `editor`/`validator`.
 /produksi 900 - 2026-08-15
 /riwayat 5
 /ringkasan 30
+/monitor 30
 /tanya bagaimana kondisi produksi blok saya?
 /tanya kapan waktu pemupukan kelapa sawit?
+```
+
+Perintah yang sama dapat ditulis secara alami:
+
+```text
+Bagaimana monitoring produksi 30 hari terakhir?
+Bagaimana kondisi produksi blok saya?
+Kapan waktu pemupukan kelapa sawit?
+Catat panen 500 kg dan 30 tandan
 ```
 
 Format `/produksi` adalah berat TBS dalam kg, jumlah tandan opsional (`-` jika kosong), dan

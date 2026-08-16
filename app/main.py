@@ -17,8 +17,8 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title=settings.app_name,
-    version="0.6.0",
-    description="Sprint 5: contextual production analysis and verified agronomy retrieval",
+    version="0.7.1",
+    description="Sprint 6: conversational routing, production monitoring, and agronomy RAG",
     lifespan=lifespan,
 )
 app.include_router(api_router, prefix=settings.api_v1_prefix)

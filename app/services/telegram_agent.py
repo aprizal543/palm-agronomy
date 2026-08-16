@@ -21,10 +21,12 @@ from app.schemas.telegram import (
     TelegramUpdate,
     TelegramWebhookResult,
 )
+from app.services.conversation_router import ConversationRoute, route_conversation
 from app.services.production_insight import (
     format_production_context_answer,
     is_production_context_question,
 )
+from app.services.production_monitoring import format_production_monitoring_answer
 from app.services.rag import (
     build_grounded_answer,
     format_telegram_rag_answer,
@@ -44,7 +46,9 @@ HELP = (
     "• /produksi <kg> [tandan] [YYYY-MM-DD] — siapkan catatan TBS\n"
     "• /riwayat [jumlah] — tampilkan catatan terakhir (maksimal 10)\n"
     "• /ringkasan [hari] — ringkasan produksi (maksimal 365 hari)"
+    "\n• /monitor [hari] — monitor produktivitas dan kualitas data produksi"
     "\n• /tanya <pertanyaan> — analisis data blok atau cari sumber agronomi terverifikasi"
+    "\n\nAnda juga dapat menulis pertanyaan biasa tanpa tanda /."
 )
 
 
@@ -182,6 +186,7 @@ class TelegramAgentService:
             "/production": "prepare_production",
             "/riwayat": "production_history",
             "/ringkasan": "production_summary",
+            "/monitor": "production_monitoring",
         }
         if command in intents:
             return intents[command]
@@ -195,6 +200,9 @@ class TelegramAgentService:
                 if is_production_context_question(question)
                 else "agronomy_question"
             )
+        route = route_conversation(text)
+        if route is not None:
+            return route.intent
         return "unknown"
 
     async def _ensure_identity(self, message: TelegramMessage) -> None:
@@ -227,13 +235,45 @@ class TelegramAgentService:
             await self._handle_production_history(update, message, trace_id)
         elif command == "/ringkasan":
             await self._handle_production_summary(update, message, trace_id)
+        elif command == "/monitor":
+            await self._handle_production_monitoring(update, message, trace_id)
         elif command in {"/tanya", "/ask"}:
             await self._handle_agronomy_question(update, message, trace_id)
         else:
+            route = route_conversation(message.text or "")
+            if route is None:
+                await self.gateway.send_message(
+                    message.chat.id,
+                    "Saya belum memahami maksudnya. Coba tanyakan kondisi produksi, "
+                    "monitoring, riwayat, atau agronomi sawit. Ketik /help untuk contoh.",
+                )
+                return
+            await self._handle_conversation_route(update, message, trace_id, route)
+
+    async def _handle_conversation_route(
+        self,
+        update: TelegramUpdate,
+        message: TelegramMessage,
+        trace_id: UUID,
+        route: ConversationRoute,
+    ) -> None:
+        routed_message = message.model_copy(update={"text": route.command_text})
+        handlers = {
+            "get_context": self._handle_context,
+            "prepare_production": self._handle_production_draft,
+            "production_history": self._handle_production_history,
+            "production_summary": self._handle_production_summary,
+            "production_monitoring": self._handle_production_monitoring,
+            "production_question": self._handle_production_question,
+            "agronomy_question": self._handle_agronomy_question,
+        }
+        handler = handlers.get(route.intent)
+        if handler is None:
             await self.gateway.send_message(
-                message.chat.id,
-                "Saya belum memahami pesan itu. Ketik /help untuk melihat perintah.",
+                message.chat.id, "Permintaan tersebut belum didukung dengan aman."
             )
+            return
+        await handler(update, routed_message, trace_id)
 
     async def _handle_agronomy_question(
         self, update: TelegramUpdate, message: TelegramMessage, trace_id: UUID
@@ -501,6 +541,56 @@ class TelegramAgentService:
             f"Total tandan: {result['total_bunches']}\n"
             f"Rata-rata/catatan: {result['average_ffb_kg_per_record']} kg",
         )
+
+    async def _handle_production_monitoring(
+        self, update: TelegramUpdate, message: TelegramMessage, trace_id: UUID
+    ) -> None:
+        parts = (message.text or "").split()
+        try:
+            days = 30 if len(parts) == 1 else int(parts[1])
+            if len(parts) > 2 or days < 1 or days > 365:
+                raise ValueError
+        except ValueError:
+            await self.gateway.send_message(message.chat.id, "Format: /monitor [1-365]")
+            return
+
+        context = await self._context_result(update, trace_id, "production_monitoring")
+        if context.get("status") != "ready":
+            await self.gateway.send_message(
+                message.chat.id,
+                format_production_monitoring_answer(context, {}, []),
+            )
+            return
+        summary = await self._execute_tool(
+            update=update,
+            trace_id=trace_id,
+            intent="production_monitoring",
+            tool_name="summarize_production",
+            arguments={
+                "chat_id": message.chat.id,
+                "telegram_user_id": update.telegram_user_id or 0,
+                "days": days,
+            },
+        )
+        if summary.get("status") != "ready":
+            await self.gateway.send_message(
+                message.chat.id, "Konteks blok atau hak akses produksi belum tersedia."
+            )
+            return
+        history = await self._execute_tool(
+            update=update,
+            trace_id=trace_id,
+            intent="production_monitoring",
+            tool_name="list_production_history",
+            arguments={
+                "chat_id": message.chat.id,
+                "telegram_user_id": update.telegram_user_id or 0,
+                "limit": 10,
+            },
+        )
+        records = history.get("records", []) if history.get("status") == "ready" else []
+        answer = format_production_monitoring_answer(context, summary, records)
+        await self.gateway.send_message(message.chat.id, answer)
 
     async def _handle_location(
         self, update: TelegramUpdate, message: TelegramMessage, trace_id: UUID

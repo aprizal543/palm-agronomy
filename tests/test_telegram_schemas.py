@@ -83,6 +83,38 @@ def test_production_question_intent_is_detected() -> None:
     assert TelegramAgentService._detect_intent(update) == "production_question"
 
 
+def test_production_monitoring_intent_is_detected() -> None:
+    update = TelegramUpdate.model_validate(
+        {
+            "update_id": 105,
+            "message": {
+                "message_id": 12,
+                "chat": {"id": 55, "type": "private"},
+                "from": {"id": 55, "first_name": "Petani"},
+                "text": "/monitor 30",
+            },
+        }
+    )
+
+    assert TelegramAgentService._detect_intent(update) == "production_monitoring"
+
+
+def test_natural_language_monitoring_intent_is_detected() -> None:
+    update = TelegramUpdate.model_validate(
+        {
+            "update_id": 106,
+            "message": {
+                "message_id": 13,
+                "chat": {"id": 55, "type": "private"},
+                "from": {"id": 55, "first_name": "Petani"},
+                "text": "Bagaimana monitoring produksi 30 hari terakhir?",
+            },
+        }
+    )
+
+    assert TelegramAgentService._detect_intent(update) == "production_monitoring"
+
+
 def test_safe_error_label_does_not_include_exception_message() -> None:
     error = RuntimeError("postgresql://user:secret@example.invalid/database")
 
