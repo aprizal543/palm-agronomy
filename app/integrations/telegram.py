@@ -53,9 +53,37 @@ class TelegramBotAPI:
             },
         )
 
+    async def set_webhook(
+        self,
+        url: str,
+        secret_token: str,
+        max_connections: int = 40,
+        drop_pending_updates: bool = False,
+    ) -> bool:
+        result = await self._post(
+            "setWebhook",
+            {
+                "url": url,
+                "secret_token": secret_token,
+                "max_connections": max_connections,
+                "drop_pending_updates": drop_pending_updates,
+                "allowed_updates": ["message", "callback_query"],
+            },
+        )
+        return bool(result)
+
+    async def get_webhook_info(self) -> dict:
+        return await self._post("getWebhookInfo", {}) or {}
+
+    async def delete_webhook(self, drop_pending_updates: bool = False) -> bool:
+        result = await self._post(
+            "deleteWebhook", {"drop_pending_updates": drop_pending_updates}
+        )
+        return bool(result)
+
     async def prepare_polling(self) -> None:
         # Telegram does not allow getUpdates while a webhook is active.
-        await self._post("deleteWebhook", {"drop_pending_updates": False})
+        await self.delete_webhook(drop_pending_updates=False)
 
     async def get_updates(self, offset: int | None, timeout_s: int = 30) -> list[dict]:
         payload: dict = {

@@ -54,7 +54,7 @@ def test_deployment_artifacts_do_not_copy_environment_secret() -> None:
 
 
 def test_app_version_is_single_source_of_truth() -> None:
-    assert APP_VERSION == "0.8.0"
+    assert APP_VERSION == "0.9.0"
 
 
 def test_json_formatter_is_available_for_container_logs() -> None:

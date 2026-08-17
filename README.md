@@ -1,4 +1,4 @@
-# PalmAgronomy Backend — Sprint 7 v0.8.0
+# PalmAgronomy Backend — Sprint 8 v0.9.0
 
 Fondasi Farm, Block, dan PostGIS untuk PalmAgronomy AI Agent. Database production-like
 tetap PostgreSQL yang di-host Supabase; Docker Compose hanya disediakan sebagai opsi
@@ -101,6 +101,19 @@ menampilkan citation, menolak menjawab saat evidence tidak cukup, dan menyimpan 
 - Versi aplikasi memiliki satu source of truth pada `app/core/version.py`.
 - Container berjalan sebagai non-root user dan tidak menyalin `.env`.
 - Docker healthcheck menggunakan endpoint liveness.
+
+## Fitur Sprint 8
+
+- Konfigurasi repository Railway melalui `railway.json`.
+- Migration Alembic dijalankan sebagai pre-deploy command.
+- Uvicorn menggunakan port dinamis dari environment cloud.
+- Railway health check menggunakan database readiness endpoint.
+- Registrasi Telegram webhook HTTPS otomatis dengan secret token.
+- Public URL dapat berasal dari `PUBLIC_BASE_URL` atau `RAILWAY_PUBLIC_DOMAIN`.
+- Tool operasional aman untuk melihat, memasang, atau menghapus webhook.
+- Restart policy untuk memulihkan proses yang gagal.
+
+Panduan deployment lengkap tersedia di `docs/SPRINT_8_DEPLOYMENT.md`.
 
 ## Menjalankan dengan Supabase
 

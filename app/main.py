@@ -7,6 +7,7 @@ from app.core.config import get_settings
 from app.core.observability import configure_logging
 from app.core.version import APP_VERSION
 from app.db.session import engine
+from app.services.telegram_webhook import register_telegram_webhook
 
 settings = get_settings()
 configure_logging(level=settings.log_level, json_logs=settings.json_logs)
@@ -14,14 +15,17 @@ configure_logging(level=settings.log_level, json_logs=settings.json_logs)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    yield
-    await engine.dispose()
+    await register_telegram_webhook(settings)
+    try:
+        yield
+    finally:
+        await engine.dispose()
 
 
 app = FastAPI(
     title=settings.app_name,
     version=APP_VERSION,
-    description="Sprint 7: deployment readiness, observability, and conversational agronomy",
+    description="Sprint 8: cloud deployment, Telegram webhook, and conversational agronomy",
     lifespan=lifespan,
 )
 app.include_router(api_router, prefix=settings.api_v1_prefix)
